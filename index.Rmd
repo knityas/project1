@@ -19,15 +19,20 @@ tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
 
 ## Data Wrangling, Exploration, Visualization
 
-### Name and EID here
+### Nitya Kodali nk9723
 
 #### Introduction 
 
-Paragraph or two introducing your datasets and variables, why they are interesting to you, etc.
+Paragraph or two introducing your datasets and variables, why they are interesting to you, etc. The datasets that I used are cousin_marriage and drinks. I thought that the drinks dataset was interesting and wanted to find something that had a countries variable to join the two datasets. The cousin_marriage dataset is about a taboo topic so I wanted to see if there was a correlation between alcohol and cousin marriage. I also really liked the articles that were written about the datasets, by Mona Chalabi. I found the datasets and articles tied to them thought the fivethirtyeight package.
+The cousin marriage dataset had only two variables, the country and the percent of marriages that are cosanguineous. The drinks dataset had five variables, the country, the servings of beer, sprits, and wine per person, and the total litres of pure alcohol per person (per year). I doubt that there will be any significant associations between drinking and cousin marriage, but I am curious to see if there is one. If there is an association to cousin marriage, I believe it will not matter the type of alcohol (beer/spirit/wine) but just the total liters.
 
 ```{R}
 # read your datasets in here, e.g., with read_csv()
-
+library(fivethirtyeight)
+library(dplyr)
+library(stringr)
+data1 <- drinks
+data2 <- cousin_marriage
 ```
 
 #### Tidying: Reshaping
@@ -42,25 +47,64 @@ If your datasets are tidy already, demonstrate that you can reshape data with pi
 #### Joining/Merging
 
 ```{R}
-# your joining code
-
-# your joining code
+data1 %>% summarize(n())
+data2 %>% summarize(n())
+data1 %>% summarize(n_distinct(country))
+data2 %>% summarize(n_distinct(country))
+data1 %>% anti_join(data2, by="country")
+data2 %>% anti_join(data1, by="country")
+data2 %>% mutate(country=str_replace(country, "United States", "USA")) %>% mutate(country=str_replace(country, "The Netherlands", "Netherlands")) %>% mutate(country=str_replace(country, "Great Britain", "United Kingdom")) -> data2
+data1 %>% inner_join(data2, by="country")
+data1 %>% inner_join(data2, by="country") -> joined_data
 ```
 
-Discussions of joining here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
+On their own, the datasets each have 193 rows and 70 rows. For both of these datasets, the countries in the observations are all distinct. Therefore, there are 193 unique countries in the drinks dataset (data1) and 70 unique countries in the cousin_marriage dataset (data2). The drinks dataset (data1) has 126 countires that do not have a match in the cousin_marriage dataset (data2). The cousin_marriage dataset (data2) has 3 countries that the drinks dataset (data1) does not have. This was seen through an antijoin. However, upon closer inspection, these three countries did not have a match due to naming differences. This was promptly fixed using dplyr function mutate. The two datsets have 70 countries in common, which can be seen with an innerjoin.
+It made no difference on whther or not I used a leftjoin with the data1 onto data2 or an inner join on my datasets to join them, since data2 did not have any countries that were not in data1. In order to do this, I piped the first dataset (drinks) to an inner join function, which inner joined drinks to cousin_marriages (data1 to data2). I called this merged dataset joined_data. Joined_data has 70 observations with 6 variables while data1 (drinks) had more observations (193) with less variables (5) and data2 had the same number of observations (70) with less variables (2).
+This means that the 126 countries that were in data1 (drinks) that were not in data2 (cousin_marriages) were dropped. The problem with this is a loss of good data.
 
 ####  Wrangling
 
 ```{R}
-# your wrangling code
+joined_data %>% mutate(country == str_remove_all(country,"(.)\\1"))
+joined_data %>% mutate("percentclass"= case_when(percent > 5 ~ 'Greater than 5 percent', TRUE ~ 'Less than 5 percent')) -> joined_data
+joined_data %>% filter(total_litres_of_pure_alcohol >= 5) %>% dplyr::select(-percent) %>% arrange(desc(beer_servings))
+joined_data %>% group_by(percentclass) %>% summarize(n())
 
-# your wrangling code
+MedAbsDev <- function(x) median(abs(x-median(x)))
+joined_data %>% summarize(mean=mean(beer_servings), sd=sd(beer_servings), min=min(beer_servings), max=max(beer_servings), MedAbsDev=MedAbsDev(beer_servings))
+joined_data %>% summarize(mean=mean(spirit_servings), sd=sd(spirit_servings), min=min(spirit_servings), max=max(spirit_servings), MedAbsDev=MedAbsDev(spirit_servings))
+joined_data %>% summarize(mean=mean(wine_servings), sd=sd(wine_servings), min=min(wine_servings), max=max(wine_servings), MedAbsDev=MedAbsDev(wine_servings))
+joined_data %>% summarize(mean=mean(total_litres_of_pure_alcohol), sd=sd(total_litres_of_pure_alcohol), min=min(total_litres_of_pure_alcohol), max=max(total_litres_of_pure_alcohol), MedAbsDev=MedAbsDev(total_litres_of_pure_alcohol))
+joined_data %>% group_by(percentclass) %>% summarize(n=n())
+joined_data %>% summarize_all(function(x)sum(is.na(x)))
 
-# your wrangling code
+joined_data %>% group_by(percentclass) %>% summarize(mean=mean(beer_servings), sd=sd(beer_servings), min=min(beer_servings), max=max(beer_servings), MedAbsDev=MedAbsDev(beer_servings))
+joined_data %>% group_by(percentclass) %>% summarize(mean=mean(spirit_servings), sd=sd(spirit_servings), min=min(spirit_servings), max=max(spirit_servings), MedAbsDev=MedAbsDev(spirit_servings))
+joined_data %>% group_by(percentclass) %>% summarize(mean=mean(wine_servings), sd=sd(wine_servings), min=min(wine_servings), max=max(wine_servings), MedAbsDev=MedAbsDev(wine_servings))
+joined_data %>% group_by(percentclass) %>% summarize(mean=mean(total_litres_of_pure_alcohol), sd=sd(total_litres_of_pure_alcohol), min=min(total_litres_of_pure_alcohol), max=max(total_litres_of_pure_alcohol), MedAbsDev=MedAbsDev(total_litres_of_pure_alcohol))
+
 ```
 
-Your discussion of wrangling section here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
 
+#GT AND KABLE STUFF HERE
+
+#joined_data %>% str_detect(country, "United") help here
+#joined_data %>% mutate(percentclass = str_remove_all(percentclass, "[]"))
+
+Your discussion of wrangling section here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
+Use all six core dplyr functions in the service of generating summary tables/statistics (14 pts)
+
+Use at least one stringr function with to do something with regex
+Compute summary statistics for each of your variables using summarize (fine to use variants such as summarize_all) alone and with group_by (if you have more than 10 variables, fine to just focus on 10 of them) (20 pts)
+
+Use at least 5 unique functions inside of summarize (e.g., mean, sd)
+For at least 2 functions, use summarize after grouping by a categorical variable. Create one by dichotomizing a numeric if necessary
+For at least 1 function, define your own function and use it inside summarize
+If applicable, at least 1 of these should group by two categorical variables
+For each categorical variable, provide a table of counts for each level (e.g., by using n() inside summarize after group_by)
+Discuss the procedure and all (or the most interesting) findings/results in no more than two paragraphs (8 pts)
+
+Style at least one table with gt or kable packages (4 pts)
 
 #### Visualizing
 
