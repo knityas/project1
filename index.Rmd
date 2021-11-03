@@ -109,19 +109,20 @@ Style at least one table with gt or kable packages (4 pts)
 #### Visualizing
 
 ```{R}
-# your plot 1
+joined_data %>% ggplot(aes(x = total_litres_of_pure_alcohol, y= percent, color=percentclass)) + geom_point() + geom_smooth(method = lm) + theme_dark() + scale_y_continuous(breaks = seq(0,75,15), name="Percent Cousin Marriage") + scale_x_continuous(breaks = seq(0,15,3), name="Total Litres of Pure Alcohol") + theme(legend.title.align = 0.5) + labs(col="Legend") + ggtitle("Cousin Marriage and Alcohol Consumption")
 ```
 
 Your discussion of plot 1
 
 ```{R}
-# your plot 2
+joined_data %>% ggplot(aes(x=percentclass)) + geom_bar(aes(y=total_litres_of_pure_alcohol), stat = "summary", fun=mean, width=.7) + geom_errorbar(aes(y=total_litres_of_pure_alcohol), stat = "summary", fun.data=mean_se, width=.4) + theme_light() + labs(x="Percent Cousin Marriage") + scale_y_continuous(breaks = seq(0,10,2), name="Total Litres of Pure Alcohol")
 ```
 
 Your discussion of plot 2
 
 ```{R}
-# your plot 3
+colors <- c("Beer" = "red", "Wine"= "blue", "Spirit"= "purple")
+joined_data %>% ggplot(aes(x=percent)) + geom_point(aes(y=beer_servings, color="Beer"), stat="summary", fun=mean, size=1.5) + geom_point(aes(y=spirit_servings, color="Spirit"), stat="summary", fun=mean) + geom_point(aes(y=wine_servings, color="Wine"), stat="summary", fun=mean) + geom_smooth(method="lm", aes(y=beer_servings, color="Beer")) + geom_smooth(method="lm", aes(y=spirit_servings, color="Spirit")) + geom_smooth(method="lm", aes(y=wine_servings, color="Wine")) + labs(x="Percent Cousin Marriage", col="Legend") + scale_y_continuous(breaks = seq(-150,350,50), limits = c(-150,350), name="Servings") + ggtitle("Cousin Marriage vs Type of Serving")
 ```
 
 Your discussion of plot 3
