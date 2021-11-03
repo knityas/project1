@@ -21,30 +21,31 @@ tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
 
 ### Nitya Kodali nk9723
 
-#### Introduction 
+### Introduction 
 
-Paragraph or two introducing your datasets and variables, why they are interesting to you, etc. The datasets that I used are cousin_marriage and drinks. I thought that the drinks dataset was interesting and wanted to find something that had a countries variable to join the two datasets. The cousin_marriage dataset is about a taboo topic so I wanted to see if there was a correlation between alcohol and cousin marriage. I also really liked the articles that were written about the datasets, by Mona Chalabi. I found the datasets and articles tied to them thought the fivethirtyeight package.
+The datasets that I used are cousin_marriage and drinks. I thought that the drinks dataset was interesting and wanted to find something that had a countries variable to join the two datasets. The cousin_marriage dataset is about a taboo topic so I wanted to see if there was a correlation between alcohol and cousin marriage. I also really liked the articles that were written about the datasets, by Mona Chalabi. I found the datasets and articles tied to them through the fivethirtyeight package.
 The cousin marriage dataset had only two variables, the country and the percent of marriages that are cosanguineous. The drinks dataset had five variables, the country, the servings of beer, sprits, and wine per person, and the total litres of pure alcohol per person (per year). I doubt that there will be any significant associations between drinking and cousin marriage, but I am curious to see if there is one. If there is an association to cousin marriage, I believe it will not matter the type of alcohol (beer/spirit/wine) but just the total liters.
 
 ```{R}
-# read your datasets in here, e.g., with read_csv()
 library(fivethirtyeight)
-library(dplyr)
-library(stringr)
 data1 <- drinks
 data2 <- cousin_marriage
 ```
 
-#### Tidying: Reshaping
+### Tidying: Reshaping
 
-If your datasets are tidy already, demonstrate that you can reshape data with pivot wider/longer here (e.g., untidy and then retidy). Alternatively, it may be easier to wait until the wrangling section so you can reshape your summary statistics. Note here if you are going to do this.
+Since my datasets were already tidy, I showed that I can use pivot_longer and pivot_wider with the drinks dataset (data1). I used the columns related to beer, wine, and spirit servings to pivot my dataset longer and assigned this long dataset to "untidy". Then, I pivoted the untidy dataset wider to convert the dataset back to it's original tidy form (retidied).
 
 ```{R}
-# your tidying code (if applicable; can also wait until wrangling section)
+library(tidyverse)
+data1 %>% pivot_longer(2:4, names_to="serving_type", values_to="count") -> untidy
+head(untidy)
+untidy %>% pivot_wider(names_from="serving_type", values_from="count") -> data1
+head(data1)
 ```
 
     
-#### Joining/Merging
+### Joining/Merging
 
 ```{R}
 data1 %>% summarize(n())
@@ -58,78 +59,71 @@ data1 %>% inner_join(data2, by="country")
 data1 %>% inner_join(data2, by="country") -> joined_data
 ```
 
-On their own, the datasets each have 193 rows and 70 rows. For both of these datasets, the countries in the observations are all distinct. Therefore, there are 193 unique countries in the drinks dataset (data1) and 70 unique countries in the cousin_marriage dataset (data2). The drinks dataset (data1) has 126 countires that do not have a match in the cousin_marriage dataset (data2). The cousin_marriage dataset (data2) has 3 countries that the drinks dataset (data1) does not have. This was seen through an antijoin. However, upon closer inspection, these three countries did not have a match due to naming differences. This was promptly fixed using dplyr function mutate. The two datsets have 70 countries in common, which can be seen with an innerjoin.
-It made no difference on whther or not I used a leftjoin with the data1 onto data2 or an inner join on my datasets to join them, since data2 did not have any countries that were not in data1. In order to do this, I piped the first dataset (drinks) to an inner join function, which inner joined drinks to cousin_marriages (data1 to data2). I called this merged dataset joined_data. Joined_data has 70 observations with 6 variables while data1 (drinks) had more observations (193) with less variables (5) and data2 had the same number of observations (70) with less variables (2).
+On their own, the datasets each have 193 rows and 70 rows. For both of these datasets, the countries in the observations are all distinct. Therefore, there are 193 unique countries in the drinks dataset (data1) and 70 unique countries in the cousin_marriage dataset (data2). The drinks dataset (data1) has 126 countires that do not have a match in the cousin_marriage dataset (data2). The cousin_marriage dataset (data2) has 3 countries that the drinks dataset (data1) does not have. This was seen through an antijoin. However, upon closer inspection, these three countries did not have a match due to naming differences. This was promptly fixed using the dplyr function mutate. The two datasets have 70 countries in common, which can be seen with an innerjoin.
+It made no difference on whether or not I used a leftjoin with data1 onto data2 or an inner join on my datasets to join them, since data2 did not have any countries that were not in data1. In order to do this, I piped the first dataset (drinks) to an inner join function, which inner joined drinks to cousin_marriages (data1 to data2). I called this merged dataset joined_data. Joined_data has 70 observations with 6 variables while data1 (drinks) had more observations (193) with less variables (5) and data2 had the same number of observations (70) with less variables (2).
 This means that the 126 countries that were in data1 (drinks) that were not in data2 (cousin_marriages) were dropped. The problem with this is a loss of good data.
 
-####  Wrangling
+###  Wrangling
 
 ```{R}
-joined_data %>% mutate(country == str_remove_all(country,"(.)\\1"))
+library(stringr)
 joined_data %>% mutate("percentclass"= case_when(percent > 5 ~ 'Greater than 5 percent', TRUE ~ 'Less than 5 percent')) -> joined_data
+joined_data %>% mutate("servings.total" = wine_servings+beer_servings+spirit_servings)
+str_detect(joined_data$percentclass, paste("G.", collapse = '|'))
 joined_data %>% filter(total_litres_of_pure_alcohol >= 5) %>% dplyr::select(-percent) %>% arrange(desc(beer_servings))
 joined_data %>% group_by(percentclass) %>% summarize(n())
+```
 
+Here, I used mutate to create a categorical variable as I didn't have any. I also use the function case_when inside of mutate. I then used mutate to demonstrate creating a new variable that is the function of other variables. I also used stringr with regex to detect all observations with greater than 5 percent for their percentclass variable. I also explored my data using all six dplyr functions.
+
+```{R}
+library(gt)
 MedAbsDev <- function(x) median(abs(x-median(x)))
 joined_data %>% summarize(mean=mean(beer_servings), sd=sd(beer_servings), min=min(beer_servings), max=max(beer_servings), MedAbsDev=MedAbsDev(beer_servings))
 joined_data %>% summarize(mean=mean(spirit_servings), sd=sd(spirit_servings), min=min(spirit_servings), max=max(spirit_servings), MedAbsDev=MedAbsDev(spirit_servings))
 joined_data %>% summarize(mean=mean(wine_servings), sd=sd(wine_servings), min=min(wine_servings), max=max(wine_servings), MedAbsDev=MedAbsDev(wine_servings))
 joined_data %>% summarize(mean=mean(total_litres_of_pure_alcohol), sd=sd(total_litres_of_pure_alcohol), min=min(total_litres_of_pure_alcohol), max=max(total_litres_of_pure_alcohol), MedAbsDev=MedAbsDev(total_litres_of_pure_alcohol))
-joined_data %>% group_by(percentclass) %>% summarize(n=n())
+joined_data %>% group_by(percentclass) %>% summarize(n=n()) %>% gt %>% tab_header(title=md("**Categorical Variable**"))
 joined_data %>% summarize_all(function(x)sum(is.na(x)))
+```
 
+Here, I computed summary statistics for all my numeric variables, using unique functions inside of summarize. One of the functions(MedAbsDev) was defined by me and then used. I also checked my categorical variable counts for each level. This count was portrayed using the package gt.
+
+```{R}
 joined_data %>% group_by(percentclass) %>% summarize(mean=mean(beer_servings), sd=sd(beer_servings), min=min(beer_servings), max=max(beer_servings), MedAbsDev=MedAbsDev(beer_servings))
 joined_data %>% group_by(percentclass) %>% summarize(mean=mean(spirit_servings), sd=sd(spirit_servings), min=min(spirit_servings), max=max(spirit_servings), MedAbsDev=MedAbsDev(spirit_servings))
 joined_data %>% group_by(percentclass) %>% summarize(mean=mean(wine_servings), sd=sd(wine_servings), min=min(wine_servings), max=max(wine_servings), MedAbsDev=MedAbsDev(wine_servings))
 joined_data %>% group_by(percentclass) %>% summarize(mean=mean(total_litres_of_pure_alcohol), sd=sd(total_litres_of_pure_alcohol), min=min(total_litres_of_pure_alcohol), max=max(total_litres_of_pure_alcohol), MedAbsDev=MedAbsDev(total_litres_of_pure_alcohol))
-
 ```
 
+I then grouped by the categorical variable and reran my summary statistics. 
 
-#GT AND KABLE STUFF HERE
+Overall, my results showed that there was indeed a correlation between the total pure alcohol in liters per person per year and the rate of cousin marriage in the country. This difference in averages across the percentclass definitely carried throughout the various types of servings (beer, spirit, wine).
 
-#joined_data %>% str_detect(country, "United") help here
-#joined_data %>% mutate(percentclass = str_remove_all(percentclass, "[]"))
-
-Your discussion of wrangling section here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
-Use all six core dplyr functions in the service of generating summary tables/statistics (14 pts)
-
-Use at least one stringr function with to do something with regex
-Compute summary statistics for each of your variables using summarize (fine to use variants such as summarize_all) alone and with group_by (if you have more than 10 variables, fine to just focus on 10 of them) (20 pts)
-
-Use at least 5 unique functions inside of summarize (e.g., mean, sd)
-For at least 2 functions, use summarize after grouping by a categorical variable. Create one by dichotomizing a numeric if necessary
-For at least 1 function, define your own function and use it inside summarize
-If applicable, at least 1 of these should group by two categorical variables
-For each categorical variable, provide a table of counts for each level (e.g., by using n() inside summarize after group_by)
-Discuss the procedure and all (or the most interesting) findings/results in no more than two paragraphs (8 pts)
-
-Style at least one table with gt or kable packages (4 pts)
-
-#### Visualizing
+### Visualizing
 
 ```{R}
-joined_data %>% ggplot(aes(x = total_litres_of_pure_alcohol, y= percent, color=percentclass)) + geom_point() + geom_smooth(method = lm) + theme_dark() + scale_y_continuous(breaks = seq(0,75,15), name="Percent Cousin Marriage") + scale_x_continuous(breaks = seq(0,15,3), name="Total Litres of Pure Alcohol") + theme(legend.title.align = 0.5) + labs(col="Legend") + ggtitle("Cousin Marriage and Alcohol Consumption")
+joined_data %>% ggplot(aes(x = total_litres_of_pure_alcohol, y= percent, color=percentclass)) + geom_point() + geom_smooth(method = lm) + theme_dark() + scale_y_continuous(breaks = seq(0,75,10), name="Percent Cousin Marriage") + scale_x_continuous(breaks = seq(0,15,3), name="Total Litres of Pure Alcohol") + theme(legend.title.align = 0.5) + labs(col="Legend") + ggtitle("Cousin Marriage and Alcohol Consumption")
 ```
 
-Your discussion of plot 1
+In my first plot I compared the percent of people in marriages that were cousin marriages with the total liters of pure alcohol directly. This showed a very clear relationship with there being a slight upward trend in the total liters of pure alcohol for higher percents of cousin marriage. However, for those countries with less than 5 percent of marriages being cousin marriages, the total liters of pure alcohol didn't seem to really have a relationship with it. This is also the plot in which I added more tick marks on the y axis to better visualize the data.
 
 ```{R}
-joined_data %>% ggplot(aes(x=percentclass)) + geom_bar(aes(y=total_litres_of_pure_alcohol), stat = "summary", fun=mean, width=.7) + geom_errorbar(aes(y=total_litres_of_pure_alcohol), stat = "summary", fun.data=mean_se, width=.4) + theme_light() + labs(x="Percent Cousin Marriage") + scale_y_continuous(breaks = seq(0,10,2), name="Total Litres of Pure Alcohol")
+joined_data %>% ggplot(aes(x=percentclass)) + geom_bar(aes(y=total_litres_of_pure_alcohol), stat = "summary", fun=mean, width=.7) + geom_errorbar(aes(y=total_litres_of_pure_alcohol), stat = "summary", fun.data=mean_se, width=.4) + theme_light() + labs(x="Percent Cousin Marriage") + scale_y_continuous(breaks = seq(0,10,2), name="Total Litres of Pure Alcohol") + ggtitle("Cousin Marriage vs Total Alcohol Consumption")
 ```
 
-Your discussion of plot 2
+Then, I made the same comparison of the countries with less than or greater than 5 percent of their marriages being consanguineous with the total liters of pure alcohol, but in bar chart form. This showed that there was a much higher total alcohol consumed for countries with less than 5 percent when compared with those that have greater than 5 percent.
 
 ```{R}
 colors <- c("Beer" = "red", "Wine"= "blue", "Spirit"= "purple")
-joined_data %>% ggplot(aes(x=percent)) + geom_point(aes(y=beer_servings, color="Beer"), stat="summary", fun=mean, size=1.5) + geom_point(aes(y=spirit_servings, color="Spirit"), stat="summary", fun=mean) + geom_point(aes(y=wine_servings, color="Wine"), stat="summary", fun=mean) + geom_smooth(method="lm", aes(y=beer_servings, color="Beer")) + geom_smooth(method="lm", aes(y=spirit_servings, color="Spirit")) + geom_smooth(method="lm", aes(y=wine_servings, color="Wine")) + labs(x="Percent Cousin Marriage", col="Legend") + scale_y_continuous(breaks = seq(-150,350,50), limits = c(-150,350), name="Servings") + ggtitle("Cousin Marriage vs Type of Serving")
+joined_data %>% ggplot(aes(x=percent)) + geom_point(aes(y=beer_servings, color="Beer"), stat="summary", fun=mean, size=1.5) + geom_point(aes(y=spirit_servings, color="Spirit"), stat="summary", fun=mean) + geom_point(aes(y=wine_servings, color="Wine"), stat="summary", fun=mean) + geom_smooth(method="lm", aes(y=beer_servings, color="Beer")) + geom_smooth(method="lm", aes(y=spirit_servings, color="Spirit")) + geom_smooth(method="lm", aes(y=wine_servings, color="Wine")) + labs(x="Percent Cousin Marriage", col="Legend") + scale_y_continuous(breaks = seq(-150,350,50), limits = c(-150,350), name="Servings") + ggtitle("Cousin Marriage vs Type of Serving") + theme_gray()
 ```
 
-Your discussion of plot 3
+In my third plot, I wanted to see if there was a relationship between the type of serving and the incidence of cousin marriage. There didn't seem to be a big difference in the impact of type of serving across the three types.
 
-#### Concluding Remarks
+### Concluding Remarks
 
-If any!
+Overall this project helped me understand R much better, and it really felt like I was putting my all the skills I have learned so far into one project.
 
 
 
